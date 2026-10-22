@@ -32,6 +32,13 @@
   }
   .field input:focus { border-color: #2f7ee0; box-shadow: 0 0 0 3px rgba(47,126,224,.12); }
 
+  .field select {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1px solid #dcdfe6; border-radius: 8px; outline: none;
+    background: #fff; color: #333; cursor: pointer;
+  }
+  .field select:focus { border-color: #2f7ee0; box-shadow: 0 0 0 3px rgba(47,126,224,.12); }
+
   .swap {
     position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
     width: 30px; height: 30px; border: none; border-radius: 50%;
@@ -151,6 +158,14 @@
       <input id="km" type="number" min="1" step="1" placeholder="留空则走最短路径，如 2800">
     </div>
 
+    <div class="field" id="verField" style="display:none">
+      <label>计算模式</label>
+      <select id="ver">
+        <option value="1">整段（快，精度差几十公里）</option>
+        <option value="2">微调（慢，精度 1km 内）</option>
+      </select>
+    </div>
+
     <button class="btn" id="go">查询线路</button>
     <div class="msg" id="msg"></div>
 
@@ -244,6 +259,13 @@ function boot(jsKey) {
     $('from').value = b; $('to').value = a;
   });
   $('toggleSt').addEventListener('click', toggleStationList);
+  // 只有填了指定里程，才显示模式选择
+  const kmInput = $('km');
+  const syncVerField = () => {
+    $('verField').style.display = kmInput.value.trim() ? 'block' : 'none';
+  };
+  kmInput.addEventListener('input', syncVerField);
+  syncVerField();
 
   ['from', 'to'].forEach(id => {
     const inp = $(id), sug = $(id + 'Suggest');
@@ -355,6 +377,7 @@ async function doRoute() {
         return;
       }
       url += '&km=' + encodeURIComponent(kmNum);
+      url += '&ver=' + encodeURIComponent($('ver').value || '1');
     }
     const r = await fetch(url);
     const j = await r.json();
@@ -385,7 +408,8 @@ function render(j) {
     const p = j.kmPlan;
     const ok = p.reached ? '✓' : '近似';
     kmBox.style.display = 'block';
-    kmBox.innerHTML = '按指定里程规划：目标 <b>' + p.requestedKm.toFixed(0) + ' km</b>，' +
+    const modeTxt = p.mode ? '［' + p.mode + '］' : '';
+    kmBox.innerHTML = '按指定里程规划' + modeTxt + '：目标 <b>' + p.requestedKm.toFixed(0) + ' km</b>，' +
       '实际 <b>' + p.actualKm.toFixed(1) + ' km</b>（差 ' +
       (p.diffKm >= 0 ? '+' : '') + p.diffKm.toFixed(1) + ' km）' + ok;
   } else {

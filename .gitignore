@@ -22,3 +22,6 @@ Thumbs.db
 # 临时文件
 *.log
 *.tmp
+
+# 宣传片等发布物不进版本库
+/docs/promo.mp4

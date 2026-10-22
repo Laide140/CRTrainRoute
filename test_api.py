@@ -235,6 +235,37 @@ def main():
         check(j['distance']['kilometers'] > 0, 'distance 字段有效')
         check(len(j['geometry']['coordinates']) > 100, '几何完整')
 
+    # ver 参数：1=整段（默认），2=微调（精度更高）
+    print()
+    print('--- ver 模式对比 ---')
+    res = {}
+    for v in (1, 2):
+        q = urllib.parse.urlencode({'from': '广州南', 'to': '北京西', 'km': 2800, 'ver': v})
+        code, j, ms = get('/api/v3/stationRoute?' + q)
+        if not j.get('ok'):
+            check(False, 'ver=%d 失败' % v)
+            continue
+        p = j['kmPlan']
+        res[v] = p
+        print('   ver=%d (%s): %.1f km, 差 %+.1f km, %.0fms' % (
+            v, p['mode'], p['actualKm'], p['diffKm'], ms))
+        check(p['ver'] == v, 'kmPlan.ver 回显为 %d' % v)
+        check(abs(p['diffKm']) <= max(5.0, 2800 * 0.05), 'ver=%d 偏差在容差内' % v)
+    if 1 in res and 2 in res:
+        check(abs(res[2]['diffKm']) <= abs(res[1]['diffKm']) + 1.0,
+              '微调模式精度不低于整段 (%+.1f vs %+.1f)' % (res[2]['diffKm'], res[1]['diffKm']))
+
+    # 不传 ver 时默认整段
+    q = urllib.parse.urlencode({'from': '广州南', 'to': '北京西', 'km': 2800})
+    code, j, ms = get('/api/v3/stationRoute?' + q)
+    check(j['kmPlan']['ver'] == 1 and j['kmPlan']['mode'] == '整段', '不传 ver 默认 ver=1 整段')
+
+    # 非法 ver
+    for bad in ('0', '3', 'abc'):
+        q = urllib.parse.urlencode({'from': '广州南', 'to': '北京西', 'km': 2800, 'ver': bad})
+        code, j, ms = get('/api/v3/stationRoute?' + q)
+        check(code == 400, '非法 ver=%s 返回 400' % bad)
+
     # 目标小于最短路时退回最短路
     q = urllib.parse.urlencode({'from': '广州南', 'to': '北京西', 'km': 500})
     code, j, ms = get('/api/v3/stationRoute?' + q)
