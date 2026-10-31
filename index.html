@@ -389,7 +389,7 @@ async function doRoute() {
     hideMsg();
     render(j);
   } catch (e) {
-    showMsg('请求失败：' + e.message + '，请确认算路服务已在 8889 端口运行', true);
+    showMsg('请求失败：' + e.message + '，请确认算路服务已在 ' + API_BASE + ' 上运行', true);
   } finally {
     btn.disabled = false; btn.textContent = '查询线路';
   }
